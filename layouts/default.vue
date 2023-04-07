@@ -9,44 +9,24 @@
                 </div>
                 <nav class="flex flex-1 flex-col">
                     <ul v-if="user" role="list" class="-mx-2 space-y-1 mb-6">
-                       <li class="flex">
-                           <div class="mr-1">
-                          hi, {{ user.email}}
-                           </div>
-                           <button @click="signOut">
-                            <ArrowRightOnRectangleIcon class="w-6 h-6"  />
-                           </button>
-                       </li>
+                        <li class="flex">
+                            <div class="mr-1">
+                                hi, {{ user.email }}
+                            </div>
+                            <button @click="signOut">
+                                <ArrowRightOnRectangleIcon class="w-6 h-6"/>
+                            </button>
+                        </li>
                     </ul>
                     <ul role="list" class="-mx-2 space-y-1">
-                        <li>
-                            <!-- Current: "bg-gray-50 text-indigo-600", Default: "text-gray-700 hover:text-indigo-600 hover:bg-gray-50" -->
-                            <a href="/"
-                               class="bg-gray-50 text-indigo-600 group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold">
-                                <HomeIcon class="h-6 w-6 shrink-0 text-indigo-600"/>
-                                home
-                            </a>
-                        </li>
-
-                        <li>
-                            <a href="/types"
-                               class="text-gray-700 hover:text-indigo-600 hover:bg-gray-50 group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold">
-                                <RectangleGroupIcon class="h-6 w-6 shrink-0 text-gray-400 group-hover:text-indigo-600"/>
-                                Types
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/keys"
-                               class="text-gray-700 hover:text-indigo-600 hover:bg-gray-50 group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold">
-                                <KeyIcon class="h-6 w-6 shrink-0 text-gray-400 group-hover:text-indigo-600"/>
-                                Keys
-                            </a>
-                        </li>
-                        <li>
-                            <a href="/export"
-                               class="text-gray-700 hover:text-indigo-600 hover:bg-gray-50 group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold">
-                                <ArrowDownTrayIcon class="h-6 w-6 shrink-0 text-gray-400 group-hover:text-indigo-600"/>
-                                Export
+                        <li v-for="item in navigations" :key="item.name">
+                            <a :href="item.href"
+                               :class="[ routeMatched(item.href) ? 'bg-gray-50 text-indigo-600' : 'text-gray-700 hover:text-indigo-600 hover:bg-gray-50', 'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold']"
+                            >
+                                <component :is="item.icon" class=""
+                                           :class="[ routeMatched(item.href) ? 'text-indigo-600': 'text-gray-400 group-hover:text-indigo-600', 'h-6 w-6 shrink-0']"
+                                />
+                                {{item.name}}
                             </a>
                         </li>
                     </ul>
@@ -56,13 +36,13 @@
 
         <main class="py-10">
             <div class="px-4 ">
-                <NuxtPage  />
+                <NuxtPage/>
             </div>
         </main>
     </div>
     <div v-else class="h-full">
         <div class="grid h-screen place-items-center mx-auto">
-            <Auth  />
+            <Auth/>
         </div>
     </div>
 </template>
@@ -75,12 +55,26 @@ import {
     KeyIcon,
     RectangleGroupIcon,
 } from '@heroicons/vue/24/outline'
+
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
+const route = useRoute()
+const currentPath = ref(route.path)
+
+const navigations = [
+    {name: 'Home', href: '/', icon: HomeIcon},
+    {name: 'Types', href: '/types', icon: RectangleGroupIcon},
+    {name: 'Keys', href: '/keys', icon: KeyIcon},
+    {name: 'Export', href: '/export', icon: ArrowDownTrayIcon},
+]
+
+function routeMatched(href) {
+    return currentPath.value === href
+}
 
 async function signOut() {
     try {
-        let { error } = await supabase.auth.signOut()
+        let {error} = await supabase.auth.signOut()
         if (error) throw error
         user.value = null
     } catch (error) {
