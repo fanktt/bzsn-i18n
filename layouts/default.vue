@@ -26,7 +26,7 @@
                                 <component :is="item.icon" class=""
                                            :class="[ routeMatched(item.href) ? 'text-indigo-600': 'text-gray-400 group-hover:text-indigo-600', 'h-6 w-6 shrink-0']"
                                 />
-                                {{item.name}}
+                                {{ item.name }}
                             </a>
                         </li>
                     </ul>
@@ -34,10 +34,8 @@
             </div>
         </div>
 
-        <main class="py-10">
-            <div class="px-4 ">
-                <NuxtPage/>
-            </div>
+        <main class="py-10 px-4 w-full">
+            <NuxtPage/>
         </main>
     </div>
     <div v-else class="h-full">
