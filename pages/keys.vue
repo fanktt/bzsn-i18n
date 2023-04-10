@@ -6,7 +6,12 @@
         </div>
     </div>
     <div class="mt-2">
-        <widget-table :headers="headers" :data="tableData" :page="page" :page-size="pageSize"/>
+        <widget-table :headers="headers" :data="tableData" :page="page" :page-size="PAGE_SIZE">
+            <template #action="{item}">
+                <button class="btn btn-sm mr-1" @click="editKey(item.id)">Edit</button>
+                <button class="btn btn-sm btn-error" @click="deleteKey(item)">Delete</button>
+            </template>
+        </widget-table>
         <div class="mt-2 flex justify-between">
             <div>Total: {{ total }}</div>
             <div class="btn-group">
@@ -17,6 +22,11 @@
         </div>
     </div>
     <modal-translation-key :open-modal="modalCreate" @close="modalCreate = false"/>
+    <modal-delete-key
+        :open-modal="modalDelete"
+        :key-to-delete="keyToDelete"
+        @refresh="getKeysData"
+        @close="closeDeleteModal"/>
 </template>
 
 <script setup>
@@ -33,8 +43,10 @@ const headers = [
 ]
 const tableData = reactive([])
 const modalCreate = ref(false)
+const modalDelete = ref(false)
+const keyToDelete = reactive({id: null, key_name: null})
 
-const pageSize = 10
+const PAGE_SIZE = 10
 
 watch(page, () => {
     getKeysData()
@@ -45,8 +57,8 @@ async function getKeysData() {
     const {count, data} = await supabase
         .from('translation_keys')
         .select('id, key_types( type_name ), key_name, updated_at', {count: 'exact'})
-        .order('id', {ascending: true})
-        .range((page.value - 1) * pageSize, page.value * pageSize - 1)
+        .order('id', {ascending: false})
+        .range((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE - 1)
     total.value = count
     if (data) {
         tableData.splice(0)
@@ -67,11 +79,25 @@ function prevPage() {
 }
 
 function nextPage() {
-    if (page.value < Math.ceil(total.value / pageSize)) {
+    if (page.value < Math.ceil(total.value / PAGE_SIZE)) {
         page.value++
     }
 }
 
+function editKey(itemId) {
+    console.log(itemId)
+}
+
+function deleteKey(item) {
+    keyToDelete.id = item.id
+    keyToDelete.key_name = item.key_name
+    modalDelete.value = true
+}
+
+function closeDeleteModal() {
+    keyToDelete.value = {id: 0, key_name: ''}
+    modalDelete.value = false
+}
 
 getKeysData()
 </script>
