@@ -3,7 +3,7 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg">Are you sure?</h3>
             <p class="mb-2">Do you want to delete key <span
-                    class="bg-gray-300 rounded p-0.5">{{ keyToDelete.key_name }}</span> and related translation? It can not
+                    class="bg-gray-300 rounded p-0.5">{{ `${keyToDelete.type_name}.${keyToDelete.key_name}` }}</span> and related translation? It can not
                 be recover. </p>
             <p v-for="t in translations" :key="t.id">{{ t.languages.code }}: <span
                     class="bg-gray-300 rounded p-0.5">{{ t.translation }}</span></p>
@@ -30,7 +30,8 @@ const props = defineProps({
         default: () => {
             return {
                 id: 0,
-                key_name: ''
+                key_name: '',
+                type_name: '',
             }
         }
     }
@@ -39,6 +40,13 @@ const emit = defineEmits(['close', 'refresh'])
 
 const translations = reactive([])
 const loadingDelete = ref(false)
+
+const keyNameWithType = computed(() => {
+    if(props.keyToDelete.type_name) {
+        return `${props.keyToDelete.type_name}.${props.keyToDelete.key_name}`
+    }
+    return props.keyToDelete.key_name
+})
 
 watch(() => props.openModal, async (value) => {
     if (!value || props.keyToDelete.id === 0) {
