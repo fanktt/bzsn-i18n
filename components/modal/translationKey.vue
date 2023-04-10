@@ -18,6 +18,12 @@
                     <input v-model="translationKey" type="text" placeholder="Translation Key"
                            class="input input-bordered"/>
                 </div>
+                <div v-if="mode === 'edit' && canBeCopy" class="form-control w-full max-w-xs">
+                    <label class="label cursor-pointer">
+                        <span class="label-text">Create new key with this data</span>
+                        <input v-model="copyToNew" type="checkbox" class="checkbox"/>
+                    </label>
+                </div>
                 <div class="divider">Translations:</div>
                 <div v-for="lang in languages" class="form-control w-full max-w-xs" :key="lang.id">
                     <label class="label">
@@ -29,11 +35,13 @@
             </form>
             <div class="modal-action">
                 <button class="btn mr-1" @click="closeModal">Cancel</button>
-                <button v-if="mode === 'create'" class="btn btn-primary" :class="{'loading': loadingCreate}"
+                <button v-if="mode === 'create' || copyToNew" class="btn btn-primary"
+                        :class="{'loading': loadingCreate}"
                         :disabled="loadingCreate"
                         @click="createKey">Create
                 </button>
-                <button v-if="mode === 'edit'" class="btn btn-primary" :class="{'loading': loadingSaveEdit}"
+                <button v-if="mode === 'edit' && copyToNew === false" class="btn btn-primary"
+                        :class="{'loading': loadingSaveEdit}"
                         :disabled="loadingSaveEdit"
                         @click="saveKey">Save
                 </button>
@@ -66,6 +74,8 @@ const keyType = ref(0)
 const translationKey = ref('')
 const loadingCreate = ref(false)
 const loadingSaveEdit = ref(false)
+const copyToNew = ref(false)
+const canBeCopy = ref(true)
 
 watch(() => props.openModal, async (value) => {
     if (!value) {
@@ -99,10 +109,18 @@ watch(() => props.openModal, async (value) => {
             .order('id', {ascending: true})
         if (languageData) {
             languageData.forEach((language) => {
+                language.id = language.languages.id
                 language.code = language.languages.code
             })
             languages.push(...languageData)
         }
+
+        // 用id 搜尋 key_mapping，沒有被複製過才可以複製
+        const {count} = await supabase
+            .from('key_mapping')
+            .select('id', {count: 'exact', head: true})
+            .eq('old_key_id', props.keyToEdit.id)
+        canBeCopy.value = count === 0
     }
 })
 
@@ -125,6 +143,8 @@ function closeModal() {
     // 清空資料
     keyType.value = 0
     translationKey.value = ''
+    copyToNew.value = false
+    canBeCopy.value = false
     types.splice(0)
     languages.splice(0)
     emit('close')
@@ -164,6 +184,21 @@ async function createKey() {
         if (translationError) {
             throw translationError
         }
+        // 如果copyToNew則新增關聯資料
+        if (copyToNew.value && props.keyToEdit.id) {
+            const newMapping = {
+                old_key_id: props.keyToEdit.id,
+                new_key_id: newKey.id,
+            }
+            const {error: mappingError} = await supabase
+                .from('key_mapping')
+                .insert(newMapping)
+
+            if (mappingError) {
+                throw mappingError
+            }
+        }
+
         emit('refresh')
         closeModal()
     } catch (error) {
@@ -201,7 +236,7 @@ async function saveKey() {
             updateTranslations.push({
                 id: language.id,
                 translation_key_id: props.keyToEdit.id,
-                language_id: language.languages.id,
+                language_id: language.id,
                 translation: language.translation,
                 updated_at: new Date(),
             })
@@ -219,8 +254,6 @@ async function saveKey() {
     } finally {
         loadingSaveEdit.value = false
     }
-
-
 }
 
 </script>
