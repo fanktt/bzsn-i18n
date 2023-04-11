@@ -1,7 +1,7 @@
 <template>
     <div class="modal" :class="{ 'modal-open': openModal}">
         <div class="modal-box">
-            <h3 class="font-bold text-lg">Translation Key: {{ mode.toUpperCase() }}</h3>
+            <h3 class="font-bold text-lg">Translation Key: {{ mode.toUpperCase() + (copyToNew ? ' to Copy' : '') }}</h3>
             <form action="">
                 <div class="form-control w-full max-w-xs">
                     <label class="label">
@@ -18,11 +18,12 @@
                     <input v-model="translationKey" type="text" placeholder="Translation Key"
                            class="input input-bordered"/>
                 </div>
-                <div v-if="mode === 'edit' && canBeCopy" class="form-control w-full max-w-xs">
-                    <label class="label cursor-pointer">
+                <div v-if="mode === 'edit'" class="form-control w-full max-w-xs mt-2">
+                    <label v-if="canBeCopy" class="label cursor-pointer">
                         <span class="label-text">Create new key with this data</span>
                         <input v-model="copyToNew" type="checkbox" class="checkbox"/>
                     </label>
+                    <label v-else>(Mapping exist)</label>
                 </div>
                 <div class="divider">Translations:</div>
                 <div v-for="lang in languages" class="form-control w-full max-w-xs" :key="lang.id">
@@ -119,7 +120,7 @@ watch(() => props.openModal, async (value) => {
         const {count} = await supabase
             .from('key_mapping')
             .select('id', {count: 'exact', head: true})
-            .eq('old_key_id', props.keyToEdit.id)
+            .or(`old_key_id.eq.${props.keyToEdit.id},new_key_id.eq.${props.keyToEdit.id}`,)
         canBeCopy.value = count === 0
     }
 })

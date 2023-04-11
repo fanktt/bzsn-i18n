@@ -65,18 +65,27 @@ watch(() => props.openModal, async (value) => {
 
 async function deleteKey() {
     try {
+        // 刪除key_mapping，old_key_id和new_key_id
+        const {error: error3} = await supabase
+            .from('key_mapping')
+            .delete()
+            .or(`old_key_id.eq.${props.keyToDelete.id},new_key_id.eq.${props.keyToDelete.id}`,)
+        if (error3) throw error3
+
         // 刪除translations
         const {error} = await supabase
             .from('translations')
             .delete()
             .eq('translation_key_id', props.keyToDelete.id)
         if (error) throw error
+
         // 刪除translation_key
         const {error: error2} = await supabase
             .from('translation_keys')
             .delete()
             .eq('id', props.keyToDelete.id)
         if (error2) throw error2
+
         emit('refresh')
         emit('close')
     } catch (error) {
