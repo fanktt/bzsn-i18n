@@ -7,6 +7,12 @@
                     <option v-for="lang in languages" :key="lang.id" :value="lang.code">{{ lang.code }}</option>
                 </select>
             </div>
+            <div class="form-control w-full max-w-xs mt-2">
+                <label class="label cursor-pointer">
+                    <span class="label-text">Export new keys only (replace by mapping)</span>
+                    <input v-model="exportNewKeyOnly" type="checkbox" class="checkbox"/>
+                </label>
+            </div>
             <button class="btn mt-3" @click="exportJSON">
                 export
             </button>
@@ -19,7 +25,7 @@ const supabase = useSupabaseClient()
 
 const languages = reactive([])
 const selectLang = ref('zh-TW')
-const exportNewKeyOnly = ref(false)
+const exportNewKeyOnly = ref(true)
 
 onMounted(async () => {
     const {data: languageData} = await supabase
@@ -35,12 +41,17 @@ async function exportJSON() {
     // 取得所有key和translation
     const {data: translationData} = await supabase
         .from('translations_expand')
-        .select('id, code, type_id, type_name, key_name, translation', {count: 'exact'})
+        .select('id, code, type_id, type_name, key_id, key_name, translation, replacekey', {count: 'exact'})
         .eq('code', selectLang.value)
         .order('id', {ascending: false})
 
     const translationJSON = {}
-    translationData.forEach((item) => {
+    for (let i = 0; i < translationData.length; i++) {
+        const item = translationData[i]
+        // 如果有replacekey且只匯出新key則跳過
+        if (exportNewKeyOnly.value && item.replacekey !== null) {
+            continue
+        }
         // 如果有type則加入type object，key和translation加入type object
         if (item.type_id !== null) {
             // 判斷translationJSON是否已經有該type object
@@ -52,7 +63,7 @@ async function exportJSON() {
         } else {
             translationJSON[item.key_name] = item.translation
         }
-    })
+    }
 
     // 將translationData轉為JSON下載
     const json = JSON.stringify(translationJSON)
