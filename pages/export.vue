@@ -16,6 +16,10 @@
             <button class="btn mt-3" @click="exportJSON">
                 export
             </button>
+            <div class="divider"></div>
+            <button class="btn mt-3" @click="exportMapping">
+                export mapping
+            </button>
         </div>
     </div>
 </template>
@@ -66,19 +70,37 @@ async function exportJSON() {
     }
 
     // 將translationData轉為JSON下載
-    const json = JSON.stringify(translationJSON)
+    downloadJSON(translationJSON, `${selectLang.value}.json`)
+}
+
+function downloadJSON(jsonObject, fileName) {
+    const json = JSON.stringify(jsonObject)
     const blob = new Blob([json], {type: 'application/json'})
     const href = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = href
-    link.download = `${selectLang.value}.json`
+    link.download = fileName
     document.body.appendChild(link)
     link.click()
     setTimeout(() => {
         document.body.removeChild(link)
         URL.revokeObjectURL(href)
     }, 1000)
+}
 
+async function exportMapping() {
+    const {data: mappingData} = await supabase
+        .from('keys_replacement')
+        .select('old_type_name, old_key_name, new_type_name, new_key_name')
+    const mappingJSON = {}
+    mappingData.forEach((item) => {
+        if (item.old_type_name !== null) {
+            mappingJSON[`${item.old_type_name}.${item.old_key_name}`] = `${item.new_type_name}.${item.new_key_name}`
+        } else {
+            mappingJSON[item.old_key_name] = `${item.new_type_name}.${item.new_key_name}`
+        }
+    })
+    downloadJSON(mappingJSON, `replace_key.json`)
 }
 
 </script>
