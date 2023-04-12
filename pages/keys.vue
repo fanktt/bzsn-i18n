@@ -45,6 +45,7 @@ const headers = [
     {title: 'Type', value: 'type_name'},
     {title: 'Key', value: 'key_name'},
     {title: 'Updated', value: 'updated_at'},
+    {title: 'Replaced?', value: 'isReplace'},
 ]
 const tableData = reactive([])
 const modalKey = ref(false)
@@ -58,6 +59,14 @@ const PAGE_SIZE = 10
 watch(page, () => {
     getKeysData()
 })
+const {data: mappingData} = await supabase
+    .from('key_mapping')
+    .select('old_key_id, new_key_id')
+const mapping = {}
+for (let i = 0; i < mappingData.length; i++) {
+    const temp = mappingData[i]
+    mapping[temp.old_key_id] = temp.new_key_id
+}
 
 async function getKeysData() {
 
@@ -74,6 +83,9 @@ async function getKeysData() {
             if (temp.key_types) {
                 temp.type_id = temp.key_types.id
                 temp.type_name = temp.key_types.type_name
+            }
+            if (mapping[temp.id]) {
+                temp.isReplace = '✅'
             }
             tableData.push(temp)
         }
