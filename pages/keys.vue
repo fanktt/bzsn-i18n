@@ -59,21 +59,22 @@ const PAGE_SIZE = 10
 watch(page, () => {
     getKeysData()
 })
-const {data: mappingData} = await supabase
-    .from('key_mapping')
-    .select('old_key_id, new_key_id')
-const mapping = {}
-for (let i = 0; i < mappingData.length; i++) {
-    const temp = mappingData[i]
-    mapping[temp.old_key_id] = temp.new_key_id
-}
+
 
 async function getKeysData() {
+    const {data: mappingData} = await supabase
+        .from('key_mapping')
+        .select('old_key_id, new_key_id')
+    const mapping = {}
+    for (let i = 0; i < mappingData.length; i++) {
+        const temp = mappingData[i]
+        mapping[temp.old_key_id] = temp.new_key_id
+    }
 
     const {count, data} = await supabase
         .from('translation_keys')
         .select('id, key_types( id, type_name ), key_name, updated_at', {count: 'exact'})
-        .order('id', {ascending: false})
+        .order('id', {ascending: true})
         .range((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE - 1)
     total.value = count
     if (data) {
