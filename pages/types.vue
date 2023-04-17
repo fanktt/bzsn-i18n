@@ -10,6 +10,9 @@
                         </div>
                         <XCircleIcon class="w-4 h-4" @click="confirmDeleteType(t)"/>
                     </div>
+                    <div>
+                        <span class="text-xs text-zinc-400">{{t.comment}}</span>
+                    </div>
 
                 </li>
             </ul>
@@ -47,7 +50,7 @@ const typeToDelete = ref(null)
 
 let {data} = await supabase
     .from('key_types')
-    .select('id, type_name')
+    .select('id, type_name, comment')
     .order('id', {ascending: true})
 
 if (data) {
