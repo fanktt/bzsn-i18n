@@ -1,9 +1,18 @@
 <template>
     <div class="flex justify-between">
         <div class="text-2xl">Keys</div>
-        <div>
+        <div class="flex">
             <button class="btn btn-primary" @click="openCreateKeyModal">create</button>
         </div>
+    </div>
+    <div class="flex">
+        <div class="form-control mr-2">
+            <label class="cursor-pointer label">
+                <span class="label-text mr-1">Show replaced</span>
+                <input v-model="showReplaced" type="checkbox" class="checkbox checkbox-sm"/>
+            </label>
+        </div>
+        <button class="btn btn-sm" @click="applySearchFilter">apply</button>
     </div>
     <div class="mt-2">
         <widget-table :headers="headers" :data="tableData" :page="page" :page-size="PAGE_SIZE">
@@ -22,35 +31,37 @@
         </div>
     </div>
     <modal-translation-key
-        :open-modal="modalKey"
-        :mode="modalKeyMode"
-        :key-to-edit="keyToEdit"
-        @refresh="getKeysData"
-        @close="modalKey = false"/>
+            :open-modal="modalKey"
+            :mode="modalKeyMode"
+            :key-to-edit="keyToEdit"
+            @refresh="getKeysData"
+            @close="modalKey = false"/>
     <modal-delete-key
-        :open-modal="modalDelete"
-        :key-to-delete="keyToDelete"
-        @refresh="getKeysData"
-        @close="closeDeleteModal"/>
+            :open-modal="modalDelete"
+            :key-to-delete="keyToDelete"
+            @refresh="getKeysData"
+            @close="closeDeleteModal"/>
 </template>
 
 <script setup>
 
 const supabase = useSupabaseClient()
 
-
+// UI
 const page = ref(1)
 const total = ref(0)
-const headers = [
+const headers = reactive([
     {title: 'Type', value: 'type_name'},
     {title: 'Key', value: 'key_name'},
-    {title: 'Updated', value: 'updated_at'},
-    {title: 'Replaced?', value: 'isReplace'},
-]
-const tableData = reactive([])
+    {title: '中文', value: 'translation'},
+])
 const modalKey = ref(false)
 const modalKeyMode = ref('create')
 const modalDelete = ref(false)
+const showReplaced = ref(false)
+
+// data
+const tableData = reactive([])
 const keyToDelete = reactive({id: null, type_name: null, key_name: null})
 const keyToEdit = reactive({id: null, type_id: null, key_name: null})
 
@@ -71,26 +82,45 @@ async function getKeysData() {
         mapping[temp.old_key_id] = temp.new_key_id
     }
 
-    const {count, data} = await supabase
-        .from('translation_keys')
-        .select('id, key_types( id, type_name ), key_name, updated_at', {count: 'exact'})
-        .order('id', {ascending: true})
+
+    let query = supabase
+        .from('translations_expand')
+        .select('id:key_id, key_name, type_id, type_name,  translation', {count: 'exact'})
+        .eq('code', 'zh-TW')
+        .order('key_id', {ascending: false})
         .range((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE - 1)
+
+    const findHeaderReplace = headers.find(item => item.value === 'isReplace') !== undefined
+    if (showReplaced.value) {
+        if (!findHeaderReplace) {
+            headers.push(
+                {title: 'Replaced?', value: 'isReplace'})
+        }
+
+    } else {
+        query = query.filter('replacekey', 'is', 'null')
+        if (findHeaderReplace) {
+            headers.splice(headers.indexOf(findHeaderReplace), 1)
+        }
+    }
+
+    const {count, data} = await query
     total.value = count
     if (data) {
         tableData.splice(0)
         for (let i = 0; i < data.length; i++) {
             const temp = data[i]
-            if (temp.key_types) {
-                temp.type_id = temp.key_types.id
-                temp.type_name = temp.key_types.type_name
-            }
             if (mapping[temp.id]) {
                 temp.isReplace = '✅'
             }
             tableData.push(temp)
         }
     }
+}
+
+async function applySearchFilter() {
+    page.value = 1
+    await getKeysData()
 }
 
 function prevPage() {
