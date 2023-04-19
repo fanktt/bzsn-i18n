@@ -47,7 +47,7 @@ async function exportJSON() {
         .from('translations_expand')
         .select('id, code, type_id, type_name, key_id, key_name, translation, replacekey', {count: 'exact'})
         .eq('code', selectLang.value)
-        .order('type_id, key_id', {ascending: true})
+        .order('type_id, key_name', {ascending: true})
 
     const translationJSON = {}
     for (let i = 0; i < translationData.length; i++) {
