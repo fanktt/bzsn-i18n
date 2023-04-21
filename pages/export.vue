@@ -16,6 +16,9 @@
             <button class="btn mt-3" @click="exportJSON">
                 export
             </button>
+            <button class="btn mt-3 ml-3" @click="exportAllJSON">
+                export all
+            </button>
             <div class="divider"></div>
             <button class="btn mt-3" @click="exportMapping">
                 export mapping
@@ -73,8 +76,16 @@ async function exportJSON() {
     downloadJSON(translationJSON, `${selectLang.value}.json`)
 }
 
+async function exportAllJSON() {
+    // for each language
+    for (let i = 0; languages.length > i; i++) {
+       selectLang.value = languages[i].code
+        await exportJSON()
+    }
+}
+
 function downloadJSON(jsonObject, fileName) {
-    const json = JSON.stringify(jsonObject)
+    const json = JSON.stringify(jsonObject, null, 2)
     const blob = new Blob([json], {type: 'application/json'})
     const href = URL.createObjectURL(blob)
     const link = document.createElement('a')

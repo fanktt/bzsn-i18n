@@ -5,14 +5,31 @@
             <button class="btn btn-primary" @click="openCreateKeyModal">create</button>
         </div>
     </div>
-    <div class="flex">
+    <div class="flex items-end">
         <div class="form-control mr-2">
             <label class="cursor-pointer label">
                 <span class="label-text mr-1">Show replaced</span>
                 <input v-model="showReplaced" type="checkbox" class="checkbox checkbox-sm"/>
             </label>
         </div>
-        <button class="btn btn-sm" @click="applySearchFilter">apply</button>
+        <div class="form-control mr-2">
+            <label class="label">
+                <span class="label-text">Key type:</span>
+            </label>
+            <select v-model="searchKeyType" class="select select-bordered">
+                <option v-for="t in types" :key="t.id" :value="t.id">{{ t.type_name }}</option>
+            </select>
+        </div>
+        <div class="form-control mr-2">
+            <input v-model="searchKeyName" type="text" placeholder="Key name"
+                   class="input input-bordered w-full max-w-xs"/>
+        </div>
+        <div class="form-control mr-2">
+            <input v-model="searchTranslation" type="text" placeholder="Translation [zh-TW]"
+                   class="input input-bordered w-full max-w-xs"/>
+        </div>
+        <button class="btn mr-2" @click="applySearchFilter">search</button>
+        <button class="btn btn-outline" @click="resetSearchFilter">reset</button>
     </div>
     <div class="mt-2">
         <widget-table :headers="headers" :data="tableData" :page="page" :page-size="PAGE_SIZE">
@@ -59,9 +76,13 @@ const modalKey = ref(false)
 const modalKeyMode = ref('create')
 const modalDelete = ref(false)
 const showReplaced = ref(false)
+const searchKeyName = ref('')
+const searchTranslation = ref('')
+const searchKeyType = ref(0)
 
 // data
 const tableData = reactive([])
+const types = reactive([{id: 0, type_name: 'All'}])
 const keyToDelete = reactive({id: null, type_name: null, key_name: null})
 const keyToEdit = reactive({id: null, type_id: null, key_name: null})
 
@@ -71,6 +92,15 @@ watch(page, () => {
     getKeysData()
 })
 
+onMounted(async () => {
+    const {data: typeData} = await supabase
+        .from('key_types')
+        .select('id, type_name')
+        .order('id', {ascending: true})
+    if (typeData) {
+        types.push(...typeData)
+    }
+})
 
 async function getKeysData() {
     const {data: mappingData} = await supabase
@@ -81,7 +111,6 @@ async function getKeysData() {
         const temp = mappingData[i]
         mapping[temp.old_key_id] = temp.new_key_id
     }
-
 
     let query = supabase
         .from('translations_expand')
@@ -96,12 +125,23 @@ async function getKeysData() {
             headers.push(
                 {title: 'Replaced?', value: 'isReplace'})
         }
-
     } else {
         query = query.filter('replacekey', 'is', 'null')
         if (findHeaderReplace) {
             headers.splice(headers.indexOf(findHeaderReplace), 1)
         }
+    }
+
+    if (searchKeyName.value) {
+        query = query.filter('key_name', 'ilike', `%${searchKeyName.value}%`)
+    }
+
+    if (searchKeyType.value !== 0) {
+        query = query.eq('type_id', searchKeyType.value)
+    }
+
+    if(searchTranslation.value) {
+        query = query.filter('translation', 'ilike', `%${searchTranslation.value}%`)
     }
 
     const {count, data} = await query
@@ -120,6 +160,15 @@ async function getKeysData() {
 
 async function applySearchFilter() {
     page.value = 1
+    await getKeysData()
+}
+
+async function resetSearchFilter() {
+    page.value = 1
+    showReplaced.value = false
+    searchKeyName.value = ''
+    searchKeyType.value = 0
+    searchTranslation.value = ''
     await getKeysData()
 }
 
