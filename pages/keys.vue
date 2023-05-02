@@ -22,11 +22,11 @@
         </div>
         <div class="form-control mr-2">
             <input v-model="searchKeyName" type="text" placeholder="Key name"
-                   class="input input-bordered w-full max-w-xs"/>
+                   class="input input-bordered w-full max-w-xs" @keyup.enter="applySearchFilter"/>
         </div>
         <div class="form-control mr-2">
             <input v-model="searchTranslation" type="text" placeholder="Translation [zh-TW]"
-                   class="input input-bordered w-full max-w-xs"/>
+                   class="input input-bordered w-full max-w-xs" @keyup.enter="applySearchFilter"/>
         </div>
         <button class="btn mr-2" @click="applySearchFilter">search</button>
         <button class="btn btn-outline" @click="resetSearchFilter">reset</button>
@@ -152,6 +152,11 @@ async function getKeysData() {
             const temp = data[i]
             if (mapping[temp.id]) {
                 temp.isReplace = '✅'
+            }
+            // 翻譯只取前25個字
+            if (temp.translation.length > 25) {
+                temp.translation = temp.translation.substring(0, 25)
+                temp.translation += '...'
             }
             tableData.push(temp)
         }
